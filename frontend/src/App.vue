@@ -52,18 +52,21 @@
             <label>排序<input v-model="chapterForm.orderNo" type="number" min="1" /></label>
             <button type="submit">{{ chapterForm.id ? '保存修改' : '新增章节' }}</button>
           </form>
-          <form class="form two" @submit.prevent="createKnowledgePoint">
+          <form class="form" @submit.prevent="createKnowledgePoint">
             <label>知识点名称<input v-model="pointForm.name" required placeholder="例如：极限定义" /></label>
             <label>章节ID<input v-model="pointForm.chapterId" type="number" placeholder="可选" /></label>
+            <label>描述<input v-model="pointForm.description" placeholder="例如：核心要点或备注（可选）" /></label>
             <button type="submit">新增知识点</button>
           </form>
-          <form class="form two" @submit.prevent="createAnswer">
+          <form class="form" @submit.prevent="createAnswer">
             <label>题目ID<input v-model="answerForm.questionId" type="number" placeholder="对应题目ID" /></label>
             <label>答案<input v-model="answerForm.answerContent" required placeholder="参考答案" /></label>
+            <label>解析<input v-model="answerForm.analysis" placeholder="例如：解题思路或要点（可选）" /></label>
             <button type="submit">新增答案</button>
           </form>
-          <form class="form two" @submit.prevent="createMistakePoint">
+          <form class="form" @submit.prevent="createMistakePoint">
             <label>题目ID<input v-model="mistakeForm.questionId" type="number" placeholder="对应题目ID" /></label>
+            <label>知识点ID<input v-model="mistakeForm.pointId" type="number" placeholder="对应知识点ID" /></label>
             <label>易错点<input v-model="mistakeForm.description" required placeholder="常见错误描述" /></label>
             <button type="submit">新增易错点</button>
           </form>
