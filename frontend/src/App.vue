@@ -118,17 +118,121 @@
           <DataTable :columns="paperQuestionColumns" :rows="paper.paperQuestions || []" empty="暂无试卷题目" />
         </section>
 
-        <section v-if="active === 'student'">
-          <form class="form compact" @submit.prevent="saveStudent">
+        <section v-if="active === 'student'" class="stack">
+          <form class="form" @submit.prevent="saveStudent">
             <label>学生姓名<input v-model="studentForm.name" required placeholder="例如：张三" /></label>
+            <label>院系
+              <select v-model="studentForm.departmentId">
+                <option value="">未分配</option>
+                <option v-for="dept in studentData.departments || []" :key="dept.department_id" :value="dept.department_id">{{ dept.name }}</option>
+              </select>
+            </label>
+            <label>班级
+              <select v-model="studentForm.classId">
+                <option value="">未分配</option>
+                <option v-for="clazz in studentData.classes || []" :key="clazz.class_id" :value="clazz.class_id">{{ clazz.name }}</option>
+              </select>
+            </label>
             <button type="submit">{{ studentForm.id ? '保存修改' : '新增学生' }}</button>
           </form>
-          <DataTable :columns="studentColumns" :rows="rows" empty="暂无学生">
+          <DataTable :columns="studentColumns" :rows="studentData.students || []" empty="暂无学生">
             <template #actions="{ row }">
               <button type="button" @click="editStudent(row)">修改</button>
               <button type="button" class="danger" @click="deleteStudent(row.student_id)">删除</button>
             </template>
           </DataTable>
+
+          <h4>院系管理</h4>
+          <form class="form compact" @submit.prevent="saveDepartment">
+            <label>院系名称<input v-model="departmentForm.name" required placeholder="例如：计算机学院" /></label>
+            <button type="submit">{{ departmentForm.id ? '保存修改' : '新增院系' }}</button>
+          </form>
+          <DataTable :columns="departmentColumns" :rows="studentData.departments || []" empty="暂无院系">
+            <template #actions="{ row }">
+              <button type="button" @click="editDepartment(row)">修改</button>
+              <button type="button" class="danger" @click="deleteDepartment(row.department_id)">删除</button>
+            </template>
+          </DataTable>
+
+          <h4>班级管理</h4>
+          <form class="form" @submit.prevent="saveClass">
+            <label>班级名称<input v-model="classForm.name" required placeholder="例如：软件工程2301" /></label>
+            <label>年级<input v-model="classForm.grade" placeholder="例如：2023" /></label>
+            <label>所属院系
+              <select v-model="classForm.departmentId">
+                <option value="">未分配</option>
+                <option v-for="dept in studentData.departments || []" :key="dept.department_id" :value="dept.department_id">{{ dept.name }}</option>
+              </select>
+            </label>
+            <button type="submit">{{ classForm.id ? '保存修改' : '新增班级' }}</button>
+          </form>
+          <DataTable :columns="classColumns" :rows="studentData.classes || []" empty="暂无班级">
+            <template #actions="{ row }">
+              <button type="button" @click="editClass(row)">修改</button>
+              <button type="button" class="danger" @click="deleteClass(row.class_id)">删除</button>
+            </template>
+          </DataTable>
+
+          <h4>课程管理与班级选课</h4>
+          <form class="form" @submit.prevent="saveCourse">
+            <label>课程名称<input v-model="courseForm.name" required placeholder="例如：高等数学" /></label>
+            <label>学科<input v-model="courseForm.subject" placeholder="例如：数学" /></label>
+            <label>说明<input v-model="courseForm.description" placeholder="课程简介" /></label>
+            <button type="submit">{{ courseForm.id ? '保存修改' : '新增课程' }}</button>
+          </form>
+          <form class="form two" @submit.prevent="selectCourseByClass">
+            <label>班级
+              <select v-model="selectionForm.classId" required>
+                <option value="">请选择班级</option>
+                <option v-for="clazz in studentData.classes || []" :key="clazz.class_id" :value="clazz.class_id">{{ clazz.name }}</option>
+              </select>
+            </label>
+            <label>课程
+              <select v-model="selectionForm.courseId" required>
+                <option value="">请选择课程</option>
+                <option v-for="course in studentData.courses || []" :key="course.course_id" :value="course.course_id">{{ course.name }}</option>
+              </select>
+            </label>
+            <button type="submit">按班级选课</button>
+          </form>
+          <DataTable :columns="courseColumns" :rows="studentData.courses || []" empty="暂无课程">
+            <template #actions="{ row }">
+              <button type="button" @click="editCourse(row)">修改</button>
+              <button type="button" class="danger" @click="deleteCourse(row.course_id)">删除</button>
+            </template>
+          </DataTable>
+          <DataTable :columns="selectionColumns" :rows="studentData.selections || []" empty="暂无选课记录">
+            <template #actions="{ row }">
+              <button type="button" class="danger" @click="deleteCourseSelection(row.selection_id)">退课</button>
+            </template>
+          </DataTable>
+
+          <h4>学生情况分析</h4>
+          <form :key="analysisSelectKey" class="form two" autocomplete="off" @submit.prevent="loadStudentAnalysis">
+            <label>按学生
+              <select v-model="analysisFilter.studentId" autocomplete="off" @change="selectAnalysisStudent">
+                <option value="all">全部学生</option>
+                <option v-for="student in studentData.students || []" :key="student.student_id" :value="String(student.student_id)">{{ student.name }}</option>
+              </select>
+            </label>
+            <label>按班级
+              <select v-model="analysisFilter.classId" autocomplete="off" @change="selectAnalysisClass">
+                <option value="all">全部班级</option>
+                <option v-for="clazz in studentData.classes || []" :key="clazz.class_id" :value="String(clazz.class_id)">{{ clazz.name }}</option>
+              </select>
+            </label>
+            <button type="submit" :disabled="analysisLoading">{{ analysisLoading ? '生成中...' : '生成分析' }}</button>
+          </form>
+          <p v-if="analysisMessage" class="analysis-note">{{ analysisMessage }}</p>
+          <div class="chart" v-if="studentAnalysis.scores && studentAnalysis.scores.length">
+            <div v-for="item in studentAnalysis.scores" :key="item.result_id" class="bar-row">
+              <span>{{ item.student_name }} / {{ item.paper_title || '考试' }}</span>
+              <div class="bar"><i :style="{ width: `${Math.min(Number(item.score || 0), 100)}%` }"></i></div>
+              <strong>{{ item.score }}</strong>
+            </div>
+          </div>
+          <p v-else class="analysis">暂无成绩记录，录入考试成绩后可查看历次成绩波动。</p>
+          <DataTable :columns="weakPointColumns" :rows="studentAnalysis.weakPoints || []" empty="暂无错误知识点统计" />
         </section>
 
         <section v-if="active === 'wrong'" class="stack">
@@ -176,11 +280,21 @@ const rows = ref([])
 const meta = ref({})
 const paper = ref({})
 const summary = ref({})
+const studentData = ref({ students: [], departments: [], classes: [], courses: [], selections: [] })
+const studentAnalysis = ref({ scores: [], weakPoints: [], summary: {} })
+const analysisMessage = ref('')
+const analysisLoading = ref(false)
+const analysisSelectKey = ref(0)
 const message = ref('')
 const dbStatus = ref('数据库检查中')
 
 const questionForm = reactive({ id: '', stem: '', type: '选择题', difficulty: '中等' })
-const studentForm = reactive({ id: '', name: '' })
+const studentForm = reactive({ id: '', name: '', departmentId: '', classId: '' })
+const departmentForm = reactive({ id: '', name: '' })
+const classForm = reactive({ id: '', name: '', grade: '', departmentId: '' })
+const courseForm = reactive({ id: '', name: '', subject: '', description: '' })
+const selectionForm = reactive({ classId: '', courseId: '' })
+const analysisFilter = reactive({ studentId: 'all', classId: 'all' })
 const chapterForm = reactive({ name: '', orderNo: 1 })
 const pointForm = reactive({ name: '', chapterId: '', description: '' })
 const answerForm = reactive({ questionId: '', answerContent: '', analysis: '' })
@@ -192,14 +306,19 @@ const subsystems = [
   { key: 'question', name: '题目管理子系统', title: '题目增删改查', scope: '教师维护题库中的题目，支持选择题、填空题、带贴图主观题的新增、修改、删除、查询和状态管理。', useCases: ['新增题目', '修改题目', '删除题目', '查询题目', '上传题目图片', '维护题型'] },
   { key: 'meta', name: '题目性质管理子系统', title: '答案、知识点、章节、易错点维护', scope: '维护答案、知识点、章节、难易度、出错率和易错点，为组卷、考试和错题分析提供基础数据。', useCases: ['维护标准答案', '维护知识点', '设置难易度', '维护章节', '统计出错率', '维护易错点'] },
   { key: 'paper', name: '自动组卷子系统', title: '自动组卷', scope: '根据总分、题型数量、难易度和知识点覆盖要求从题库中自动抽题并生成试卷。', useCases: ['设置组卷条件', '自动抽取题目', '校验知识点覆盖', '计算题目分值', '生成试卷', '预览试卷'] },
-  { key: 'student', name: '学生管理子系统', title: '学生增删改查', scope: '维护学生、院系、班级和选课信息，并提供学生考试成绩波动和知识点薄弱项统计。', useCases: ['维护学生信息', '维护院系班级', '学生选课', '查询学生成绩', '生成成绩波动图', '生成薄弱知识点报告'] },
+  { key: 'student', name: '学生管理子系统', title: '学生增删改查', scope: '学生的院系班级分配、学生以班级为单位选课、学生管理和学生情况分析。', useCases: ['学生的院系班级分配', '学生以班级为单位选课', '学生管理（增删查改）', '学生情况分析（历次考试成绩波动图、错误知识点统计报告）'] },
   { key: 'wrong', name: '错题分析子系统', title: '错题记录与分析', scope: '对考试结果进行错题归纳，统计班级和个人在章节、知识点、难易度维度上的错误情况，并给出加强建议。', useCases: ['导入考试结果', '分析班级错题', '分析个人错题', '统计知识点错误率', '生成学习建议', '查看正确答案'] },
 ]
 
 const current = computed(() => subsystems.find((item) => item.key === active.value))
 
 const questionColumns = [{ key: 'question_id', label: 'ID' }, { key: 'type', label: '题型' }, { key: 'stem', label: '题干' }, { key: 'difficulty', label: '难易度' }]
-const studentColumns = [{ key: 'student_id', label: 'ID' }, { key: 'name', label: '姓名' }, { key: 'department_id', label: '院系ID' }, { key: 'class_id', label: '班级ID' }]
+const studentColumns = [{ key: 'student_id', label: 'ID' }, { key: 'name', label: '姓名' }, { key: 'department_name', label: '院系' }, { key: 'class_name', label: '班级' }, { key: 'grade', label: '年级' }]
+const departmentColumns = [{ key: 'department_id', label: 'ID' }, { key: 'name', label: '院系' }]
+const classColumns = [{ key: 'class_id', label: 'ID' }, { key: 'name', label: '班级' }, { key: 'grade', label: '年级' }, { key: 'department_name', label: '院系' }]
+const courseColumns = [{ key: 'course_id', label: 'ID' }, { key: 'name', label: '课程' }, { key: 'subject', label: '学科' }, { key: 'description', label: '说明' }]
+const selectionColumns = [{ key: 'selection_id', label: 'ID' }, { key: 'class_name', label: '班级' }, { key: 'student_name', label: '学生' }, { key: 'course_name', label: '课程' }, { key: 'selected_time', label: '选课时间' }]
+const weakPointColumns = [{ key: 'point_id', label: '知识点ID' }, { key: 'point_name', label: '错误知识点' }, { key: 'wrong_count', label: '错误次数' }, { key: 'student_names', label: '涉及学生' }]
 const chapterColumns = [{ key: 'chapter_id', label: 'ID' }, { key: 'name', label: '章节' }, { key: 'order_no', label: '排序' }]
 const pointColumns = [{ key: 'point_id', label: 'ID' }, { key: 'chapter_id', label: '章节ID' }, { key: 'name', label: '知识点' }, { key: 'description', label: '描述' }]
 const answerColumns = [{ key: 'answer_id', label: 'ID' }, { key: 'question_id', label: '题目ID' }, { key: 'answer_content', label: '答案' }, { key: 'analysis', label: '解析' }]
@@ -226,7 +345,13 @@ async function checkDb() {
 async function loadActive() {
   message.value = ''
   if (active.value === 'question') rows.value = (await request('/api/question')).items || []
-  if (active.value === 'student') rows.value = (await request('/api/student')).items || []
+  if (active.value === 'student') {
+    studentData.value = await request('/api/student')
+    Object.assign(analysisFilter, { studentId: 'all', classId: 'all' })
+    analysisSelectKey.value += 1
+    analysisMessage.value = ''
+    await loadStudentAnalysis()
+  }
   if (active.value === 'wrong') {
     const data = await request('/api/wrong-analysis')
     rows.value = data.items || []
@@ -258,17 +383,119 @@ async function saveStudent() {
   const path = studentForm.id ? `/api/student/${studentForm.id}` : '/api/student'
   const method = studentForm.id ? 'PUT' : 'POST'
   message.value = (await request(path, { method, body: JSON.stringify(studentForm) })).message
-  Object.assign(studentForm, { id: '', name: '' })
+  Object.assign(studentForm, { id: '', name: '', departmentId: '', classId: '' })
   await loadActive()
 }
 
 function editStudent(row) {
-  Object.assign(studentForm, { id: row.student_id, name: row.name })
+  Object.assign(studentForm, { id: row.student_id, name: row.name, departmentId: row.department_id || '', classId: row.class_id || '' })
 }
 
 async function deleteStudent(id) {
   message.value = (await request(`/api/student/${id}`, { method: 'DELETE' })).message
   await loadActive()
+}
+
+async function saveDepartment() {
+  const path = departmentForm.id ? `/api/student/department/${departmentForm.id}` : '/api/student/department'
+  const method = departmentForm.id ? 'PUT' : 'POST'
+  message.value = (await request(path, { method, body: JSON.stringify(departmentForm) })).message
+  Object.assign(departmentForm, { id: '', name: '' })
+  await loadActive()
+}
+
+function editDepartment(row) {
+  Object.assign(departmentForm, { id: row.department_id, name: row.name })
+}
+
+async function deleteDepartment(id) {
+  if (!confirm('确定删除该院系吗？相关班级会删除，学生会解除院系班级分配。')) return
+  message.value = (await request(`/api/student/department/${id}`, { method: 'DELETE' })).message
+  await loadActive()
+}
+
+async function saveClass() {
+  const path = classForm.id ? `/api/student/class/${classForm.id}` : '/api/student/class'
+  const method = classForm.id ? 'PUT' : 'POST'
+  message.value = (await request(path, { method, body: JSON.stringify(classForm) })).message
+  Object.assign(classForm, { id: '', name: '', grade: '', departmentId: '' })
+  await loadActive()
+}
+
+function editClass(row) {
+  Object.assign(classForm, { id: row.class_id, name: row.name, grade: row.grade || '', departmentId: row.department_id || '' })
+}
+
+async function deleteClass(id) {
+  if (!confirm('确定删除该班级吗？学生会解除班级分配。')) return
+  message.value = (await request(`/api/student/class/${id}`, { method: 'DELETE' })).message
+  await loadActive()
+}
+
+async function saveCourse() {
+  const path = courseForm.id ? `/api/student/course/${courseForm.id}` : '/api/student/course'
+  const method = courseForm.id ? 'PUT' : 'POST'
+  message.value = (await request(path, { method, body: JSON.stringify(courseForm) })).message
+  Object.assign(courseForm, { id: '', name: '', subject: '', description: '' })
+  await loadActive()
+}
+
+function editCourse(row) {
+  Object.assign(courseForm, { id: row.course_id, name: row.name, subject: row.subject || '', description: row.description || '' })
+}
+
+async function deleteCourse(id) {
+  if (!confirm('确定删除该课程吗？相关选课记录会一起删除。')) return
+  message.value = (await request(`/api/student/course/${id}`, { method: 'DELETE' })).message
+  await loadActive()
+}
+
+async function selectCourseByClass() {
+  message.value = (await request('/api/student/class-course-selection', { method: 'POST', body: JSON.stringify(selectionForm) })).message
+  Object.assign(selectionForm, { classId: '', courseId: '' })
+  await loadActive()
+}
+
+async function deleteCourseSelection(id) {
+  message.value = (await request(`/api/student/course-selection/${id}`, { method: 'DELETE' })).message
+  await loadActive()
+}
+
+async function selectAnalysisStudent() {
+  analysisFilter.classId = 'all'
+  await loadStudentAnalysis()
+}
+
+async function selectAnalysisClass() {
+  analysisFilter.studentId = 'all'
+  await loadStudentAnalysis()
+}
+
+async function loadStudentAnalysis() {
+  const params = new URLSearchParams()
+  const studentId = analysisFilter.studentId
+  const classId = analysisFilter.classId
+  if (studentId !== 'all') {
+    params.set('studentId', studentId)
+  } else if (classId !== 'all') {
+    params.set('classId', classId)
+  }
+  const scope = studentId !== 'all' ? '当前学生' : classId !== 'all' ? '当前班级' : '全部学生'
+  analysisLoading.value = true
+  analysisMessage.value = `${scope}分析正在生成...`
+  try {
+    studentAnalysis.value = await request(`/api/student/analysis${params.toString() ? `?${params}` : ''}`)
+    const scoreCount = studentAnalysis.value.summary?.scoreCount || 0
+    const weakPointCount = studentAnalysis.value.summary?.weakPointCount || 0
+    const time = new Date().toLocaleTimeString()
+    analysisMessage.value = scoreCount || weakPointCount
+      ? `${scope}分析已生成：${scoreCount} 条成绩记录，${weakPointCount} 个错误知识点统计。（${time}）`
+      : `${scope}分析已生成：暂无成绩或错误知识点记录。（${time}）`
+  } catch (error) {
+    analysisMessage.value = `分析生成失败：${error.message}`
+  } finally {
+    analysisLoading.value = false
+  }
 }
 
 async function createChapter() {
@@ -393,9 +620,14 @@ h1, h2, h3, h4 { margin: 0; }
 label { display: grid; gap: 6px; color: #334155; }
 input, select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; min-width: 0; }
 .message { margin: 12px 0; padding: 10px 12px; border: 1px solid #add8bb; border-radius: 6px; background: #effaf2; color: #17653a; }
+.analysis-note { margin: -4px 0 4px; color: #31516f; }
+.chart { display: grid; gap: 10px; margin: 12px 0; }
+.bar-row { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 2fr) 64px; gap: 10px; align-items: center; }
+.bar { height: 12px; border-radius: 999px; overflow: hidden; background: #e2e8f0; }
+.bar i { display: block; height: 100%; background: #225ea8; }
 table { width: 100%; border-collapse: collapse; margin-top: 14px; background: #fff; }
 th, td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: left; vertical-align: top; }
 th { background: #f8fafc; color: #334155; }
 .danger { color: #b42318; }
-@media (max-width: 900px) { .workspace, .form, .form.two, .form.compact { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 900px) { .workspace, .form, .form.two, .form.compact, .bar-row { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; } }
 </style>
