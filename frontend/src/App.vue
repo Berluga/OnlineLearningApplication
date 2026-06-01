@@ -351,14 +351,37 @@
         <section v-if="active === 'wrong'" class="stack">
           <h4>错题记录维护</h4>
           <form class="form two" @submit.prevent="createWrong">
+            <label>考试结果ID<input v-model="wrongForm.resultId" type="number" placeholder="可选：对应考试结果ID" /></label>
             <label>题目ID<input v-model="wrongForm.questionId" type="number" placeholder="对应题目ID" /></label>
+            <label>知识点ID<input v-model="wrongForm.pointId" type="number" placeholder="可选：对应知识点ID" /></label>
             <label>错误原因<input v-model="wrongForm.reason" required placeholder="例如：知识点掌握不牢" /></label>
-            <button type="submit">新增错题记录</button>
+            <button type="submit">{{ wrongForm.id ? '保存修改' : '新增错题记录' }}</button>
           </form>
           <p v-if="areaMessage('wrong')" class="inline-message">{{ areaMessage('wrong') }}</p>
           <p class="analysis">{{ summary.suggestion || '暂无分析结果。' }}</p>
           <h4>错题记录列表</h4>
-          <DataTable :columns="wrongColumns" :rows="rows" empty="暂无错题记录" />
+          <DataTable :columns="wrongColumns" :rows="rows" empty="暂无错题记录">
+            <template #actions="{ row }">
+              <button type="button" @click="editWrong(row)">修改</button>
+              <button type="button" class="danger" @click="deleteWrong(row.wrong_id)">删除</button>
+            </template>
+          </DataTable>
+          <div v-if="summary.stats">
+            <h4>错题统计</h4>
+            <p>总错题数：{{ summary.stats.totalWrong }}</p>
+            <div v-if="summary.stats.byPoint && summary.stats.byPoint.length">
+              <h5>按知识点（Top 5）</h5>
+              <ul>
+                <li v-for="item in summary.stats.byPoint.slice(0,5)" :key="item.point_id">知识点ID: {{ item.point_id }}，错误次数: {{ item.wrong_count }}，占比: {{ (item.rate * 100).toFixed(1) }}%</li>
+              </ul>
+            </div>
+            <div v-if="summary.stats.byQuestion && summary.stats.byQuestion.length">
+              <h5>按题目（Top 5）</h5>
+              <ul>
+                <li v-for="item in summary.stats.byQuestion.slice(0,5)" :key="item.question_id">题目ID: {{ item.question_id }}，错误次数: {{ item.wrong_count }}，占比: {{ (item.rate * 100).toFixed(1) }}%</li>
+              </ul>
+            </div>
+          </div>
         </section>
       </section>
     </section>
@@ -423,7 +446,7 @@ const pointForm = reactive({ name: '', chapterId: '', description: '' })
 const answerForm = reactive({ questionId: '', answerContent: '', analysis: '' })
 const mistakeForm = reactive({ questionId: '', pointId: '', description: '' })
 const paperForm = reactive({ title: '自动生成试卷', totalScore: 100, count: 5, difficulty: '中等' })
-const wrongForm = reactive({ resultId: '', questionId: '', pointId: '', reason: '' })
+const wrongForm = reactive({ id: '', resultId: '', questionId: '', pointId: '', reason: '' })
 
 const subsystems = [
   { key: 'question', name: '题目管理子系统', title: '题目增删改查', scope: '教师维护题库中的题目，支持选择题、填空题、带贴图主观题的新增、修改、删除、查询和状态管理。', useCases: ['新增题目', '修改题目', '删除题目', '查询题目', '上传题目图片', '维护题型'] },
@@ -547,6 +570,12 @@ async function loadActive() {
       const data = await request('/api/wrong-analysis')
       rows.value = data.items || []
       summary.value = data.summary || {}
+      try {
+        const stats = await request('/api/wrong-analysis/stats')
+        summary.value.stats = stats
+      } catch (e) {
+        // Statistics are optional; keep the main wrong-question list usable.
+      }
     }
     if (active.value === 'meta') meta.value = await request('/api/question-meta')
     if (active.value === 'paper') paper.value = await request('/api/auto-paper')
@@ -897,8 +926,20 @@ async function deletePaper(id) {
 }
 
 async function createWrong() {
-  showAreaMessage('wrong', (await request('/api/wrong-analysis', { method: 'POST', body: JSON.stringify(wrongForm) })).message)
-  Object.assign(wrongForm, { resultId: '', questionId: '', pointId: '', reason: '' })
+  const path = wrongForm.id ? `/api/wrong-analysis/${wrongForm.id}` : '/api/wrong-analysis'
+  const method = wrongForm.id ? 'PUT' : 'POST'
+  showAreaMessage('wrong', (await request(path, { method, body: JSON.stringify(wrongForm) })).message)
+  Object.assign(wrongForm, { id: '', resultId: '', questionId: '', pointId: '', reason: '' })
+  await loadActive()
+}
+
+function editWrong(row) {
+  Object.assign(wrongForm, { id: row.wrong_id, resultId: row.result_id || '', questionId: row.question_id || '', pointId: row.point_id || '', reason: row.reason || '' })
+}
+
+async function deleteWrong(id) {
+  if (!confirm('确定删除该错题记录吗？')) return
+  showAreaMessage('wrong', (await request(`/api/wrong-analysis/${id}`, { method: 'DELETE' })).message)
   await loadActive()
 }
 
