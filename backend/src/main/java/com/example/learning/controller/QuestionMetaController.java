@@ -28,7 +28,7 @@ public class QuestionMetaController {
     public Map<String, Object> list() {
         return Map.of(
                 "subsystem", "题目性质管理子系统",
-                "useCases", List.of("维护标准答案", "维护知识点", "设置难易度", "维护章节", "统计出错率", "维护易错点"),
+                "useCases", List.of("查询题目性质", "维护标准答案", "维护知识点", "设置难易度", "维护章节", "统计出错率", "维护易错点"),
                 "chapters", jdbcTemplate.queryForList("select chapter_id, course_id, name, order_no from chapter order by chapter_id desc"),
                 "knowledgePoints", jdbcTemplate.queryForList("select point_id, chapter_id, name, description from knowledge_point order by point_id desc"),
                 "answers", jdbcTemplate.queryForList("select answer_id, question_id, answer_content, analysis from answer order by answer_id desc"),

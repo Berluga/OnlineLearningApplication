@@ -28,7 +28,7 @@ public class WrongAnalysisController {
         );
         return Map.of(
                 "subsystem", "错题分析子系统",
-                "useCases", List.of("导入考试结果", "分析班级错题", "分析个人错题", "统计知识点错误率", "生成学习建议", "查看正确答案"),
+                "useCases", List.of("查询错题记录", "导入考试结果", "分析班级错题", "分析个人错题", "统计知识点错误率", "生成学习建议", "查看正确答案"),
                 "items", records,
                 "summary", Map.of("wrongCount", records.size(), "suggestion", records.isEmpty() ? "暂无错题记录，可先导入考试结果。" : "请优先复习错误次数较多的知识点。")
         );

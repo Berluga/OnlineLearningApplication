@@ -29,7 +29,7 @@ public class AutoPaperController {
     public Map<String, Object> list() {
         return Map.of(
                 "subsystem", "自动组卷子系统",
-                "useCases", List.of("设置组卷条件", "自动抽取题目", "校验知识点覆盖", "计算题目分值", "生成试卷", "预览试卷", "删除试卷"),
+                "useCases", List.of("查询试卷", "设置组卷条件", "自动抽取题目", "校验知识点覆盖", "计算题目分值", "生成试卷", "预览试卷", "删除试卷"),
                 "papers", jdbcTemplate.queryForList("select paper_id, title, total_score, difficulty, creator_id from paper order by paper_id desc"),
                 "paperQuestions", jdbcTemplate.queryForList("select paper_id, question_id, score, order_no from paper_question order by paper_id desc, order_no asc")
         );

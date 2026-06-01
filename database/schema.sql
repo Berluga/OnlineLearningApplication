@@ -9,9 +9,12 @@ CREATE TABLE student (student_id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGI
 CREATE TABLE course (course_id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(100), subject VARCHAR(100), description TEXT);
 CREATE TABLE chapter (chapter_id BIGINT PRIMARY KEY AUTO_INCREMENT, course_id BIGINT, name VARCHAR(100), order_no INT);
 CREATE TABLE knowledge_point (point_id BIGINT PRIMARY KEY AUTO_INCREMENT, chapter_id BIGINT, name VARCHAR(100), description TEXT);
+CREATE TABLE question_type (type_id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(30) NOT NULL UNIQUE, description TEXT);
+INSERT INTO question_type(name, description) VALUES ('选择题', '系统内置题型'), ('填空题', '系统内置题型'), ('主观题', '系统内置题型')
+ON DUPLICATE KEY UPDATE description = VALUES(description);
 CREATE TABLE question (question_id BIGINT PRIMARY KEY AUTO_INCREMENT, type VARCHAR(30), stem TEXT, difficulty VARCHAR(20), course_id BIGINT, chapter_id BIGINT, creator_id BIGINT);
 CREATE TABLE question_option (option_id BIGINT PRIMARY KEY AUTO_INCREMENT, question_id BIGINT, label VARCHAR(10), content TEXT, is_correct BOOLEAN);
-CREATE TABLE question_image (image_id BIGINT PRIMARY KEY AUTO_INCREMENT, question_id BIGINT, image_url VARCHAR(255));
+CREATE TABLE question_image (image_id BIGINT PRIMARY KEY AUTO_INCREMENT, question_id BIGINT, image_url VARCHAR(255), image_role VARCHAR(20) DEFAULT 'question');
 CREATE TABLE answer (answer_id BIGINT PRIMARY KEY AUTO_INCREMENT, question_id BIGINT, answer_content TEXT, analysis TEXT);
 CREATE TABLE question_knowledge_point (question_id BIGINT, point_id BIGINT, PRIMARY KEY(question_id, point_id));
 CREATE TABLE mistake_point (mistake_id BIGINT PRIMARY KEY AUTO_INCREMENT, question_id BIGINT, point_id BIGINT, description TEXT);
